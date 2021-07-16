@@ -1006,6 +1006,34 @@ namespace NPoco
             }
         }
 
+        //wickyhu: add FetchProc 
+        internal IEnumerable<T> QueryProcImp<T>(T instance, Expression<Func<T, IList>>? listExpression, Func<T, object[]>? idFunc, Sql Sql, PocoData? pocoData = null)
+        {
+            pocoData ??= PocoDataFactory.ForType(typeof(T));
+
+            var sql = Sql.SQL;
+            var args = Sql.Arguments;
+
+            if (EnableAutoSelect) sql = AutoSelectHelper.AddSelectClause(this, typeof(T), sql);
+
+            try
+            {
+                OpenSharedConnectionInternal();
+                //using var cmd = CreateCommand(_sharedConnection, sql, args);
+                using var cmd = CreateStoredProcedureCommand(_sharedConnection, sql, args);                
+                using var reader = ExecuteDataReader(cmd, true).RunSync();
+                var read = listExpression != null ? ReadOneToMany(instance, reader, listExpression, idFunc, pocoData) : Read<T>(instance, reader, pocoData);
+                foreach (var item in read)
+                {
+                    yield return item;
+                }
+            }
+            finally
+            {
+                CloseSharedConnectionInternal();
+            }
+        }
+		
         private async Task<DbDataReader> ExecuteDataReader(DbCommand cmd, bool sync)
         {
             DbDataReader r;
@@ -1745,6 +1773,16 @@ namespace NPoco
         {
             var underlyingType = Nullable.GetUnderlyingType(memberInfo.MemberType);
             return memberInfo.MemberType.GetTypeInfo().IsEnum || (underlyingType != null && underlyingType.GetTypeInfo().IsEnum);
+        }
+
+		//wickyhu: add FetchProc
+        private IEnumerable<T> FetchProc<T>(T instance, Sql Sql)
+        {
+            return QueryProcImp(instance, null, null, Sql);
+        }
+        public List<T> FetchProc<T>(string name, params object[] args)
+        {
+            return FetchProc<T>(default!, new Sql(true, $";{name}", args)).ToList();
         }
     }
 

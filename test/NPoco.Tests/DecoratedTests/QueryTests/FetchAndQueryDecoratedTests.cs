@@ -193,5 +193,15 @@ namespace NPoco.Tests.DecoratedTests.QueryTests
             var name = Database.ExecuteScalar<string>("TestProc", CommandType.StoredProcedure, new { Name = theName });
             Assert.AreEqual(theName, name);
         }
+
+		//wickyhu: add FetchProc test
+        [Test]
+        public void FetchListWithStoredProcedure()
+        {
+            var theName = "TheName";
+            var name = Database.FetchProc<string>("TestProc", new { Name = theName });
+            Assert.AreEqual(1, name.Count);
+            Assert.AreEqual(theName, name[0]);
+        }
     }
 }

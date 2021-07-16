@@ -82,7 +82,13 @@ namespace NPoco
         /// Fetch objects of type T from the database using the sql and parameters specified
         /// </summary>
         List<T> Fetch<T>(Sql sql);
-        
+
+		//wickyhu: add FetchProc
+        /// <summary>
+        /// Fetch objects of type T from the database using the procedure and parameters specified
+        /// </summary>
+        List<T> FetchProc<T>(string name, params object[] args);
+
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// The sql provided will be converted so that only the results for the page and itemsPerPage values specified will be returned.
@@ -94,7 +100,7 @@ namespace NPoco
         /// The sql provided will be converted so that only the results for the page and itemsPerPage values specified will be returned.
         /// </summary>
         List<T> Fetch<T>(long page, long itemsPerPage, Sql sql);
-        
+
         /// <summary>
         /// Fetch objects of type T from the database using the sql and parameters specified. 
         /// The sql provided will be converted so that only the results for the page and itemsPerPage specified will be returned.
