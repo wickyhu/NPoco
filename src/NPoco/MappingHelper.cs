@@ -51,6 +51,12 @@ namespace NPoco
                     converter = src => Enum.ToObject((underlyingType ?? dstType), src);
                     return converter;
                 }
+				//add non-integer type support
+				if (IsNonIntegralType(srcType))
+                {
+                    converter = src => Enum.ToObject((underlyingType ?? dstType), Convert.ToInt32(src));
+                    return converter;
+                }
             }
             else if (srcType == typeof(string) && (dstType == typeof(Guid) || dstType == typeof(Guid?)))
             {
@@ -75,6 +81,15 @@ namespace NPoco
                 typeof(Int32), typeof(UInt32),
                 typeof(Int64), typeof(UInt64)
             }.Contains(t);
+        }
+
+		//add non-integer type support
+		 static bool IsNonIntegralType(Type t)
+        {
+            return new[]
+                   {
+                       typeof (Decimal), typeof (Single), typeof(Double)
+                   }.Contains(t);
         }
 
         public static object GetDefault(Type type)

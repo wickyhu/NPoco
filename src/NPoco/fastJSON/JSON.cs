@@ -521,7 +521,9 @@ namespace NPoco.fastJSON
                     return JSON.CreateLong(s, 0, s.Length);
             }
             else if (conversionType == typeof(string))
-                return (string)value;
+                //return (string)value;
+				//add non-string type support
+				return (value is string) ? (string)value : Convert.ToString(value);
 
             else if (conversionType.GetTypeInfo().IsEnum)
                 return CreateEnum(conversionType, value);
@@ -656,6 +658,9 @@ namespace NPoco.fastJSON
                 object v = k;
                 if (k is Dictionary<string, object>)
                     v = ParseDictionary(k as Dictionary<string, object>, globals, it, null);
+				//add nested list support
+				else if (k is List<object>)
+                    v = RootList(k, it);
                 else
                     v = ChangeType(k, it);
 

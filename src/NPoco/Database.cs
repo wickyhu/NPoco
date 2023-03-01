@@ -98,7 +98,8 @@ namespace NPoco
         // Set to true to keep the first opened connection alive until this object is disposed
         public bool KeepConnectionAlive { get; set; }
 
-        private bool ShouldCloseConnectionAutomatically { get; set; }
+		//change private to protected
+        protected bool ShouldCloseConnectionAutomatically { get; set; }
 
         // Open a connection (can be nested)
         public IDatabase OpenSharedConnection()
@@ -982,7 +983,7 @@ namespace NPoco
             }
         }
 
-        internal IEnumerable<T> QueryImp<T>(T instance, Expression<Func<T, IList>>? listExpression, Func<T, object[]>? idFunc, Sql Sql, PocoData? pocoData = null)
+        internal IEnumerable<T> QueryImp<T>(T instance, Expression<Func<T, IList>>? listExpression, Func<T, object[]>? idFunc, Sql Sql, PocoData? pocoData = null, CommandType commandType = CommandType.Text)
         {
             pocoData ??= PocoDataFactory.ForType(typeof(T));
 
@@ -994,7 +995,9 @@ namespace NPoco
             try
             {
                 OpenSharedConnectionInternal();
-                using var cmd = CreateCommand(_sharedConnection, sql, args);
+                //using var cmd = CreateCommand(_sharedConnection, sql, args);
+				//add commandType parameter
+                using var cmd = CreateCommand(_sharedConnection, commandType, sql, args);
                 using var reader = ExecuteDataReader(cmd, true).RunSync();
                 var read = listExpression != null ? ReadOneToMany(instance, reader, listExpression, idFunc, pocoData) : Read<T>(instance, reader, pocoData);
                 foreach (var item in read)
@@ -1697,6 +1700,9 @@ namespace NPoco
         private string _paramPrefix = "@";
         private readonly bool _connectionPassedIn;
 
+        //expose DbProviderFactory
+        public DbProviderFactory? DbProviderFactory => _factory;
+
         internal int ExecuteNonQueryHelper(DbCommand cmd)
         {
             DoPreExecute(cmd);
@@ -1747,6 +1753,63 @@ namespace NPoco
         {
             var underlyingType = Nullable.GetUnderlyingType(memberInfo.MemberType);
             return memberInfo.MemberType.GetTypeInfo().IsEnum || (underlyingType != null && underlyingType.GetTypeInfo().IsEnum);
+        }
+
+		//add FetchProc
+        private IEnumerable<T> FetchProc<T>(T instance, Sql Sql)
+        {
+            return QueryImp(instance, null, null, Sql, null, CommandType.StoredProcedure);
+        }
+        public List<T> FetchProc<T>(string name, params object[] args)
+        {
+            return FetchProc<T>(default!, new Sql(true, $";{name}", args)).ToList();
+        }
+
+    }
+
+    //add dynamic ignore 
+    public static class IgnoredColumns
+    {
+        [ThreadStatic]
+        internal static Dictionary<string, List<string>>? List;
+
+        public static string GetKey(Type type)
+        {
+            if (type == null) 
+                return string.Empty;
+            return type.FullName;
+        }        
+        public static void Set<T>(List<string> ignoredColumns)
+        {
+            Set(typeof(T), ignoredColumns);
+        }
+        public static List<string>? Get<T>()
+        {
+            return Get(typeof(T));
+        }
+        public static void Set(Type type, List<string> ignoredColumns)
+        {
+            if (type == null) return;
+            string key = GetKey(type);
+            if (List == null)
+            {
+                List = new Dictionary<string, List<string>>();
+            }
+            List[key] = ignoredColumns;
+        }
+        public static List<string>? Get(Type type)
+        {
+            if (type != null)
+            {
+                string key = GetKey(type);
+                if (List == null)
+                {
+                    List = new Dictionary<string, List<string>>();
+                }
+                if (List.TryGetValue(key, out List<string>? ignoredColumns))
+                    return ignoredColumns;
+            }
+            return null;
         }
     }
 

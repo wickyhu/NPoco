@@ -123,6 +123,13 @@ namespace NPoco
                 ci.ColumnType = columnTypeAttrs.First().Type;
             }
 
+            //add dynamic ignore 
+            var ignores = IgnoredColumns.Get(mi.DeclaringType);
+            if (ignores?.Count>0 && ignores.Contains(ci.ColumnName, StringComparer.OrdinalIgnoreCase))
+            {
+                ci.IgnoreColumn = true;
+            }
+
             return ci;
         }
     }
