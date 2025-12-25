@@ -54,7 +54,7 @@ namespace NPoco.DatabaseTypes
 
         public override string? GetAutoIncrementExpression(TableInfo ti)
         {
-            if (!string.IsNullOrEmpty(ti.SequenceName))
+            if (!string.IsNullOrEmpty(ti.SequenceName) && ti.UseOutputClause)
                 return $"NEXT VALUE FOR {ti.SequenceName}";
 
             return null;
