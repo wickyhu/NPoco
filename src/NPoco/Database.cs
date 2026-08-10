@@ -160,17 +160,17 @@ namespace NPoco
 
             if (_transaction != null)
             {
-                _transaction.Dispose();
+                try { _transaction.Dispose(); } catch { }
                 _transaction = null;
             }
 
-            if (_sharedConnection == null) return;
-
-            OnConnectionClosingInternal(_sharedConnection);
-
-            _sharedConnection.Close();
-            _sharedConnection.Dispose();
-            _sharedConnection = null!;
+            if (_sharedConnection != null)
+            {
+                try { OnConnectionClosingInternal(_sharedConnection); } catch { }
+                try { _sharedConnection.Close(); } catch { }
+                try { _sharedConnection.Dispose(); } catch { }
+                _sharedConnection = null!;
+            }
         }
 
         public VersionExceptionHandling VersionException { get; set; } = VersionExceptionHandling.Exception;
